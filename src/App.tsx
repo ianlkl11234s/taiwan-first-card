@@ -2,13 +2,34 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import { DEFAULT_STATE, FOOTER_PRESETS, SIZE_ORDER, SIZES, type CardState } from './core/types'
 import { resolveHeadline } from './core/text'
-import { ensureFonts } from './core/fonts'
+import { ensureFonts, FONT_STYLE_ORDER, FONT_STYLES } from './core/fonts'
+import { contrast, PALETTE_ORDER, PALETTES, resolveColors } from './core/palettes'
 import { renderCard } from './core/render'
+import { TEMPLATE_ORDER, TEMPLATES } from './templates'
 import { fileName, isInAppBrowser, renderPng, saveImage } from './core/export'
 
 type FontStatus = 'loading' | 'ready' | 'unavailable'
 
 const MAX_PREVIEW_DPR = 2
+const THUMB_WIDTH = 72
+
+/** 版型縮圖：用目前的文字與配色實際畫出來 */
+function TemplateThumb({ state, version }: { state: CardState; version: number }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const canvas = ref.current
+    const ctx = canvas?.getContext('2d')
+    if (!canvas || !ctx) return
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_PREVIEW_DPR)
+    const { width, height } = SIZES[state.size]
+    const pw = Math.round(THUMB_WIDTH * dpr)
+    const ph = Math.round((pw * height) / width)
+    if (canvas.width !== pw) canvas.width = pw
+    if (canvas.height !== ph) canvas.height = ph
+    renderCard(ctx, state, pw / width)
+  }, [state, version])
+  return <canvas ref={ref} aria-hidden="true" />
+}
 
 export default function App() {
   const [state, setState] = useState<CardState>(DEFAULT_STATE)
@@ -25,6 +46,9 @@ export default function App() {
   const { width, height } = SIZES[state.size]
   const cardText = `${resolveHeadline(state)}${state.footer}`
 
+  const colors = resolveColors(state)
+  const lowContrast = contrast(colors.bg, colors.ink) < 3
+
   const update = (patch: Partial<CardState>) => setState((s) => ({ ...s, ...patch }))
 
   // 依實際文字載入字型切片；只採用最後一次請求的結果
@@ -32,7 +56,7 @@ export default function App() {
     let current = true
     setFontStatus('loading')
     const timer = setTimeout(() => {
-      ensureFonts(cardText).then((ok) => {
+      ensureFonts(cardText, state.fontStyle).then((ok) => {
         if (!current) return
         setFontStatus(ok ? 'ready' : 'unavailable')
         if (ok) setFontsEverReady(true)
@@ -43,7 +67,7 @@ export default function App() {
       current = false
       clearTimeout(timer)
     }
-  }, [cardText])
+  }, [cardText, state.fontStyle])
 
   useEffect(() => {
     const canvas = previewRef.current
@@ -65,7 +89,7 @@ export default function App() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     const layout = renderCard(ctx, state, pw / width)
-    setOverflow(layout.headline.overflow || layout.footer.overflow)
+    setOverflow(layout.blocks.some((b) => b.text.overflow))
   }, [state, previewWidth, width, height, fontVersion])
 
   useEffect(() => {
@@ -149,6 +173,80 @@ export default function App() {
           {state.mode === 'advanced' && (
             <input type="text" value={state.footer} onChange={(e) => update({ footer: e.target.value })} />
           )}
+        </div>
+
+        <div className="field">
+          <span>版型</span>
+          <div className="templates">
+            {TEMPLATE_ORDER.map((id) => (
+              <button
+                key={id}
+                className={state.template === id ? 'template active' : 'template'}
+                aria-pressed={state.template === id}
+                onClick={() => update({ template: id })}
+              >
+                <TemplateThumb state={{ ...state, template: id }} version={fontVersion} />
+                <b>{TEMPLATES[id].label}</b>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
+          <span>配色</span>
+          <div className="palettes">
+            {PALETTE_ORDER.map((id) => {
+              const p = PALETTES[id]
+              const active = state.palette === id && !state.customBg && !state.customInk
+              return (
+                <button
+                  key={id}
+                  className={active ? 'palette active' : 'palette'}
+                  aria-pressed={active}
+                  aria-label={p.label}
+                  title={p.label}
+                  style={{ background: p.bg, color: p.ink }}
+                  onClick={() => update({ palette: id, customBg: null, customInk: null })}
+                >
+                  <i style={{ background: p.accent }} />
+                  <small>{p.label}</small>
+                </button>
+              )
+            })}
+          </div>
+          <div className="custom-colors">
+            <label>
+              <input type="color" value={colors.bg} onChange={(e) => update({ customBg: e.target.value.toUpperCase() })} />
+              背景色
+            </label>
+            <label>
+              <input type="color" value={colors.ink} onChange={(e) => update({ customInk: e.target.value.toUpperCase() })} />
+              文字色
+            </label>
+            {(state.customBg || state.customInk) && (
+              <button className="link" onClick={() => update({ customBg: null, customInk: null })}>
+                還原配色
+              </button>
+            )}
+          </div>
+          {lowContrast && <p className="warn">文字色和背景色太接近，圖卡可能看不清楚。</p>}
+        </div>
+
+        <div className="field">
+          <span>字體</span>
+          <div className="segmented three">
+            {FONT_STYLE_ORDER.map((id) => (
+              <button
+                key={id}
+                className={state.fontStyle === id ? 'active' : ''}
+                aria-pressed={state.fontStyle === id}
+                style={{ fontFamily: FONT_STYLES[id].family, fontWeight: FONT_STYLES[id].headlineWeight }}
+                onClick={() => update({ fontStyle: id })}
+              >
+                {FONT_STYLES[id].label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="field">

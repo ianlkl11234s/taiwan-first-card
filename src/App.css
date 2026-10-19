@@ -65,6 +65,51 @@
 }
 .chip.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
+.segmented.three { grid-template-columns: repeat(3, 1fr); }
+
+.templates { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.template {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  padding: 8px 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.template canvas { width: 72px; max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 1px 4px rgb(0 0 0 / 0.15); }
+.template b { font-size: 0.8rem; }
+.template.active { border-color: var(--accent); outline: 2px solid var(--accent); color: var(--accent); }
+
+.palettes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.palette {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 10px 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.palette i { width: 18px; height: 18px; border-radius: 50%; }
+.palette small { font-size: 0.7rem; font-weight: 700; }
+.palette.active { outline: 3px solid var(--accent); outline-offset: 1px; }
+
+.custom-colors { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 0.9rem; }
+.custom-colors label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.custom-colors input[type='color'] {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+}
+.link { border: 0; background: none; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 4px; }
+
 .sizes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .size {
   display: grid;

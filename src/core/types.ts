@@ -20,6 +20,9 @@ export const SIZES: Record<SizeId, CardSize> = {
 export const SIZE_ORDER: SizeId[] = ['square', 'portrait', 'story', 'landscape']
 
 export type EditMode = 'simple' | 'advanced'
+export type TemplateId = 'declaration' | 'minimal' | 'gradient' | 'poster'
+export type PaletteId = 'taiwan' | 'mono' | 'ocean' | 'night' | 'forest' | 'blossom'
+export type FontStyleId = 'heavy' | 'regular' | 'serif'
 
 export interface CardState {
   mode: EditMode
@@ -29,6 +32,12 @@ export interface CardState {
   headline: string
   footer: string
   size: SizeId
+  template: TemplateId
+  palette: PaletteId
+  /** 自訂背景色／文字色；null 表示用配色預設 */
+  customBg: string | null
+  customInk: string | null
+  fontStyle: FontStyleId
 }
 
 export const FOOTER_PRESETS = ['11/28 先投票', '11/28 不去打工']
@@ -39,4 +48,9 @@ export const DEFAULT_STATE: CardState = {
   headline: '成為「追星人」前，我先是台灣人',
   footer: FOOTER_PRESETS[0],
   size: 'square',
+  template: 'declaration',
+  palette: 'taiwan',
+  customBg: null,
+  customInk: null,
+  fontStyle: 'heavy',
 }
