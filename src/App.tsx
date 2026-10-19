@@ -12,9 +12,11 @@ type FontStatus = 'loading' | 'ready' | 'unavailable'
 
 const MAX_PREVIEW_DPR = 2
 const THUMB_WIDTH = 72
+const MINI_MAX_WIDTH = 112
+const MINI_MAX_HEIGHT = 168
 
-/** 版型縮圖：用目前的文字與配色實際畫出來 */
-function TemplateThumb({ state, version }: { state: CardState; version: number }) {
+/** 小尺寸圖卡（版型縮圖、浮動預覽）：用目前的文字與配色實際畫出來 */
+function CardCanvas({ state, version, cssWidth }: { state: CardState; version: number; cssWidth: number }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = ref.current
@@ -22,13 +24,13 @@ function TemplateThumb({ state, version }: { state: CardState; version: number }
     if (!canvas || !ctx) return
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_PREVIEW_DPR)
     const { width, height } = SIZES[state.size]
-    const pw = Math.round(THUMB_WIDTH * dpr)
+    const pw = Math.round(cssWidth * dpr)
     const ph = Math.round((pw * height) / width)
     if (canvas.width !== pw) canvas.width = pw
     if (canvas.height !== ph) canvas.height = ph
     renderCard(ctx, state, pw / width)
-  }, [state, version])
-  return <canvas ref={ref} aria-hidden="true" />
+  }, [state, version, cssWidth])
+  return <canvas ref={ref} style={{ width: cssWidth }} aria-hidden="true" />
 }
 
 export default function App() {
@@ -39,6 +41,7 @@ export default function App() {
   const [overflow, setOverflow] = useState(false)
   const [manualUrl, setManualUrl] = useState<string | null>(null)
   const [previewWidth, setPreviewWidth] = useState(0)
+  const [previewVisible, setPreviewVisible] = useState(true)
 
   const previewRef = useRef<HTMLCanvasElement>(null)
   const exportRef = useRef<HTMLCanvasElement | null>(null)
@@ -74,7 +77,15 @@ export default function App() {
     if (!canvas) return
     const ro = new ResizeObserver(([entry]) => setPreviewWidth(entry.contentRect.width))
     ro.observe(canvas)
-    return () => ro.disconnect()
+    // 主預覽大半捲出畫面時，顯示浮動小預覽
+    const io = new IntersectionObserver(([entry]) => setPreviewVisible(entry.intersectionRatio > 0.35), {
+      threshold: [0, 0.35, 1],
+    })
+    io.observe(canvas)
+    return () => {
+      ro.disconnect()
+      io.disconnect()
+    }
   }, [])
 
   useEffect(() => {
@@ -125,6 +136,20 @@ export default function App() {
         />
         {overflow && <p className="warn">文字太長，已縮到最小字級，請精簡一些。</p>}
       </section>
+
+      {!previewVisible && !manualUrl && (
+        <button
+          className="mini-preview"
+          aria-label="回到預覽"
+          onClick={() => previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+        >
+          <CardCanvas
+            state={state}
+            version={fontVersion}
+            cssWidth={Math.round(Math.min(MINI_MAX_WIDTH, (MINI_MAX_HEIGHT * width) / height))}
+          />
+        </button>
+      )}
 
       <section className="editor">
         <div className="segmented" role="tablist" aria-label="編輯模式">
@@ -185,7 +210,7 @@ export default function App() {
                 aria-pressed={state.template === id}
                 onClick={() => update({ template: id })}
               >
-                <TemplateThumb state={{ ...state, template: id }} version={fontVersion} />
+                <CardCanvas state={{ ...state, template: id }} version={fontVersion} cssWidth={THUMB_WIDTH} />
                 <b>{TEMPLATES[id].label}</b>
               </button>
             ))}
