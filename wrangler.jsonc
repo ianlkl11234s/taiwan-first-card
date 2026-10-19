@@ -1,0 +1,9 @@
+// Cloudflare Workers 靜態資源部署：只發佈 dist/，public/_headers 會一併套用（CSP 等）
+{
+  "name": "taiwan-first-card",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

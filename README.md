@@ -39,12 +39,13 @@ PNG 用 `toDataURL` 在點擊當下同步產生：Safari 會在 `toBlob` 的非�
 - Cloudflare Pages 可能保留基本存取日誌（不含編輯內容）。
 - `public/_headers` 的 CSP 只允許連線到本站與 Google Fonts，用技術手段保證沒有其他對外連線。
 
-## 部署（Cloudflare Pages）
+## 部署（Cloudflare Workers 靜態資源，連 GitHub 自動部署）
 
-- Build command：`npm run build`（Pages 會先依 lockfile 自動安裝）
+- Build command：`npm run build`（會先依 lockfile 自動安裝）
+- Deploy command：`npx wrangler deploy`（讀 `wrangler.jsonc`，只發佈 `dist/`）
 - Node 版本：`.nvmrc` 指定 22（Vite 8 需要 ≥ 20.19）
 - Output directory：`dist`
-- `public/_headers` 會被複製到 `dist/`，由 Pages 套用 CSP 等 header。
+- `public/_headers` 會被複製到 `dist/`，由 Cloudflare 套用 CSP 等 header。
 
 ## 實機驗收清單
 
