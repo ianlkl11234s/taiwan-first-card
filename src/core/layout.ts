@@ -19,6 +19,8 @@ export interface LaidCluster extends Cluster {
 export interface Line {
   clusters: LaidCluster[]
   width: number
+  /** 段落（以換行分隔）的最後一行 */
+  paragraphEnd: boolean
 }
 
 export interface TextLayout {
@@ -104,7 +106,7 @@ function placeLine(cs: Seg[], fontSize: number, spacing: number, measure: Measur
     x += measure(text, fontSize) + spacing
     return laid
   })
-  return { clusters, width: clusters.length ? x - spacing : 0 }
+  return { clusters, width: clusters.length ? x - spacing : 0, paragraphEnd: false }
 }
 
 /** 回傳每行的起點 index（貪婪換行） */
@@ -163,11 +165,12 @@ export function wrapText(
   for (const paragraph of text.split('\n')) {
     const cs = segment(paragraph)
     if (cs.length === 0) {
-      lines.push({ clusters: [], width: 0 })
+      lines.push({ clusters: [], width: 0, paragraphEnd: true })
       continue
     }
     const starts = fixOrphan(cs, breakParagraph(cs, fontSize, spacing, maxWidth, measure), fontSize, spacing, maxWidth, measure)
     starts.forEach((s, i) => lines.push(placeLine(cs.slice(s, starts[i + 1] ?? cs.length), fontSize, spacing, measure)))
+    lines[lines.length - 1].paragraphEnd = true
   }
   return lines
 }
@@ -182,6 +185,8 @@ export interface FitOptions {
   maxLines?: number
   /** 字級定案後縮窄行寬到行數不變的最小值，讓各行長度接近、避免最後一行只剩一兩個字 */
   balance?: boolean
+  /** 字級最多往下讓多少比例，換取「非段落末行」都不短於行寬一半（避免「成為」單獨一行） */
+  avoidShortLines?: number
 }
 
 /** 二分搜尋能放進框內的最大整數字級 */
@@ -208,12 +213,27 @@ export function fitText(text: string, opts: FitOptions, measure: Measure): TextL
       hi = mid - 1
     }
   }
+  if (best && opts.avoidShortLines) {
+    const floor = Math.max(Math.ceil(minSize), Math.floor(best.size * (1 - opts.avoidShortLines)))
+    for (let size = best.size; size >= floor; size--) {
+      const r = size === best.size ? { lines: best.lines, fits: true } : tryLayout(size)
+      if (r.fits && !hasShortLine(r.lines, maxWidth)) {
+        best = { size, lines: r.lines }
+        break
+      }
+    }
+  }
   if (best) {
     const lines = balance ? balanceLines(text, best.size, best.lines, maxWidth, measure, letterSpacingEm) : best.lines
     return { fontSize: best.size, lineHeight, lines, overflow: false }
   }
   const size = Math.ceil(minSize)
   return { fontSize: size, lineHeight, lines: tryLayout(size).lines, overflow: true }
+}
+
+/** 段落中間（不含每段最後一行）有沒有短於行寬一半的行 */
+function hasShortLine(lines: Line[], maxWidth: number): boolean {
+  return lines.some((l) => !l.paragraphEnd && l.width < maxWidth * 0.5)
 }
 
 function balanceLines(

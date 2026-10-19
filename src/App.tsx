@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
-import { DEFAULT_STATE, FOOTER_PRESETS, SIZES, type CardState } from './core/types'
+import { DEFAULT_STATE, FOOTER_PRESETS, SIZE_ORDER, SIZES, type CardState } from './core/types'
 import { resolveHeadline } from './core/text'
 import { ensureFonts } from './core/fonts'
 import { renderCard } from './core/render'
@@ -149,6 +149,26 @@ export default function App() {
           {state.mode === 'advanced' && (
             <input type="text" value={state.footer} onChange={(e) => update({ footer: e.target.value })} />
           )}
+        </div>
+
+        <div className="field">
+          <span>圖片尺寸</span>
+          <div className="sizes">
+            {SIZE_ORDER.map((id) => (
+              <button
+                key={id}
+                className={state.size === id ? 'size active' : 'size'}
+                aria-pressed={state.size === id}
+                onClick={() => update({ size: id })}
+              >
+                <i style={{ aspectRatio: `${SIZES[id].width} / ${SIZES[id].height}` }} />
+                <b>{SIZES[id].label}</b>
+                <small>
+                  {SIZES[id].width}×{SIZES[id].height}
+                </small>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 

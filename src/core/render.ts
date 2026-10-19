@@ -23,10 +23,8 @@ function makeMeasure(ctx: CanvasRenderingContext2D, weight: number): Measure {
 }
 
 export function computeLayout(ctx: CanvasRenderingContext2D, state: CardState): DeclarationLayout {
-  const { width, height } = SIZES[state.size]
   return layoutDeclaration(
-    width,
-    height,
+    SIZES[state.size],
     { headline: resolveHeadline(state), footer: state.footer },
     (weight) => makeMeasure(ctx, weight),
   )

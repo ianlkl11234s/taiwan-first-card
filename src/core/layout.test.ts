@@ -97,6 +97,16 @@ describe('fitText', () => {
     expect(balanced.lines.map((l) => l.clusters.length)).toEqual([4, 4])
   })
 
+  it('steps the size down to avoid a short line mid-paragraph', () => {
+    // 字級 10、寬 60：「成為」+「「追星人」」放不下 → 「成為」單獨一行；縮到 8 就能同一行
+    const opts = { ...box, maxWidth: 60, maxHeight: 1000, minSize: 5, maxSize: 10 }
+    const text = '成為「追星人」前，我先是台灣人'
+    expect(fitText(text, opts, measure).lines[0].clusters.length).toBe(2)
+    const r = fitText(text, { ...opts, avoidShortLines: 0.2 }, measure)
+    expect(r.fontSize).toBe(8)
+    expect(r.lines[0].clusters.map((c) => c.text).join('')).toBe('成為「追星人」')
+  })
+
   it('respects maxLines', () => {
     const r = fitText('十一月二十八日先去投票再說', { ...box, maxLines: 1 }, measure)
     expect(r.lines.length).toBe(1)

@@ -1,11 +1,23 @@
 export type SizeId = 'square' | 'portrait' | 'story' | 'landscape'
 
-export const SIZES: Record<SizeId, { label: string; width: number; height: number }> = {
-  square: { label: 'IG／Threads 正方形', width: 1080, height: 1080 },
-  portrait: { label: 'IG 直式貼文', width: 1080, height: 1350 },
-  story: { label: 'IG 限時動態', width: 1080, height: 1920 },
-  landscape: { label: '橫向社群圖卡', width: 1200, height: 675 },
+export interface CardSize {
+  label: string
+  width: number
+  height: number
+  /** 會被平台介面蓋住的上下區域（px），重要文字不可放進去；背景色塊可以延伸過去 */
+  safeTop: number
+  safeBottom: number
 }
+
+export const SIZES: Record<SizeId, CardSize> = {
+  square: { label: 'IG／Threads 正方形', width: 1080, height: 1080, safeTop: 0, safeBottom: 0 },
+  portrait: { label: 'IG 直式貼文', width: 1080, height: 1350, safeTop: 0, safeBottom: 0 },
+  // 限時動態上方有頭像列、下方有回覆框
+  story: { label: 'IG 限時動態', width: 1080, height: 1920, safeTop: 270, safeBottom: 340 },
+  landscape: { label: '橫向社群圖卡', width: 1200, height: 675, safeTop: 0, safeBottom: 0 },
+}
+
+export const SIZE_ORDER: SizeId[] = ['square', 'portrait', 'story', 'landscape']
 
 export type EditMode = 'simple' | 'advanced'
 

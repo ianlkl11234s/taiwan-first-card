@@ -1,4 +1,5 @@
 import { fitText, type Measure, type TextLayout } from '../core/layout'
+import type { CardSize } from '../core/types'
 
 /** 宣言風格：米白底、鮮明紅、大字、高對比 */
 export const declaration = {
@@ -22,6 +23,8 @@ export interface Box {
 export interface DeclarationLayout {
   width: number
   height: number
+  /** 文字必須落在這個範圍內 */
+  safe: Box
   rule: Box
   headlineBox: Box
   headline: TextLayout
@@ -32,16 +35,17 @@ export interface DeclarationLayout {
 
 /** 版面一律用相對比例，換尺寸時重新排版而不是拉伸 */
 export function layoutDeclaration(
-  width: number,
-  height: number,
+  size: CardSize,
   text: CardText,
   measureWith: (weight: number) => Measure,
 ): DeclarationLayout {
-  const unit = Math.min(width, height)
+  const { width, height } = size
+  const safe: Box = { x: 0, y: size.safeTop, w: width, h: height - size.safeTop - size.safeBottom }
+  const unit = Math.min(width, safe.h)
   const pad = unit * 0.08
-  const bandH = height * 0.2
+  const bandH = safe.h * 0.2
 
-  const rule: Box = { x: pad, y: pad, w: unit * 0.14, h: unit * 0.022 }
+  const rule: Box = { x: pad, y: safe.y + pad, w: unit * 0.14, h: unit * 0.022 }
 
   const headlineBox: Box = {
     x: pad,
@@ -49,7 +53,7 @@ export function layoutDeclaration(
     w: width - pad * 2,
     h: 0,
   }
-  headlineBox.h = height - bandH - pad * 0.8 - headlineBox.y
+  headlineBox.h = safe.y + safe.h - bandH - pad * 0.8 - headlineBox.y
 
   const headline = fitText(
     text.headline,
@@ -60,12 +64,15 @@ export function layoutDeclaration(
       maxSize: unit * 0.15,
       lineHeight: 1.28,
       balance: true,
+      avoidShortLines: 0.2,
     },
     measureWith(declaration.headlineWeight),
   )
 
-  const band: Box = { x: 0, y: height - bandH, w: width, h: bandH }
-  const footerBox: Box = { x: pad, y: band.y + bandH * 0.18, w: width - pad * 2, h: bandH * 0.64 }
+  // 紅色色塊延伸到底邊（限時動態時會穿過下方不安全區），文字只放在安全區內那一段
+  const bandTop = safe.y + safe.h - bandH
+  const band: Box = { x: 0, y: bandTop, w: width, h: height - bandTop }
+  const footerBox: Box = { x: pad, y: bandTop + bandH * 0.18, w: width - pad * 2, h: bandH * 0.64 }
   const footer = fitText(
     text.footer,
     {
@@ -80,5 +87,5 @@ export function layoutDeclaration(
     measureWith(declaration.footerWeight),
   )
 
-  return { width, height, rule, headlineBox, headline, band, footerBox, footer }
+  return { width, height, safe, rule, headlineBox, headline, band, footerBox, footer }
 }
