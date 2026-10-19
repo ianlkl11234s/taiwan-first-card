@@ -1,0 +1,130 @@
+.app {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  display: grid;
+  gap: 16px;
+  grid-template-areas: 'masthead' 'preview' 'editor' 'actions';
+}
+
+.masthead { grid-area: masthead; }
+.masthead h1 { margin: 0; font-size: 1.5rem; font-weight: 900; color: var(--accent); }
+.masthead p { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+
+.preview { grid-area: preview; }
+.preview-canvas {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.12);
+  background: var(--line);
+}
+
+.editor { grid-area: editor; display: grid; gap: 16px; }
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 3px;
+  background: var(--surface);
+}
+.segmented button {
+  border: 0;
+  background: none;
+  padding: 10px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.segmented button.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
+
+.field { display: grid; gap: 8px; }
+.field > span { font-size: 0.9rem; color: var(--muted); }
+.field input,
+.field textarea {
+  width: 100%;
+  /* 16px 以上避免 iOS 聚焦時自動放大 */
+  font-size: 18px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  resize: vertical;
+}
+.field input:focus,
+.field textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.chip.active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+.actions {
+  grid-area: actions;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+.actions .warn { grid-column: 1 / -1; }
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+.primary { border: 0; background: var(--accent); color: var(--on-accent); }
+.primary:disabled { opacity: 0.5; cursor: progress; }
+.secondary { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+.warn { margin: 8px 0 0; color: var(--warn); font-size: 0.85rem; }
+
+.manual {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: rgb(0 0 0 / 0.88);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+.manual img {
+  max-width: 100%;
+  max-height: 65vh;
+  object-fit: contain;
+  /* 讓 iOS 長按能叫出「儲存影像」 */
+  -webkit-touch-callout: default;
+}
+.manual p { margin: 0; }
+.manual .hint { color: #f0c36a; font-size: 0.9rem; }
+.manual-actions { display: flex; gap: 8px; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(320px, 400px) 1fr;
+    grid-template-areas: 'masthead preview' 'editor preview' 'actions preview';
+    grid-template-rows: auto auto 1fr;
+    align-items: start;
+    column-gap: 32px;
+    padding-top: 32px;
+  }
+  .preview { position: sticky; top: 32px; }
+  .preview-canvas { max-width: calc((100vh - 64px) * var(--ar)); margin: 0 auto; }
+}
