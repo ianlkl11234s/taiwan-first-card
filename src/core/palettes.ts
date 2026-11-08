@@ -7,12 +7,13 @@ export interface Colors {
 }
 
 export const PALETTES: Record<PaletteId, Colors & { label: string }> = {
-  taiwan: { label: '台灣紅', bg: '#F4EDE1', ink: '#1B1B1B', accent: '#C8102E' },
+  taiwan: { label: '朱紅', bg: '#F4EDE1', ink: '#1B1B1B', accent: '#C8102E' },
   mono: { label: '黑白', bg: '#FFFFFF', ink: '#111111', accent: '#111111' },
   ocean: { label: '海藍', bg: '#EAF1F7', ink: '#0B2545', accent: '#1F5FBF' },
   night: { label: '夜空', bg: '#121821', ink: '#F4F1EA', accent: '#FFC83D' },
   forest: { label: '山林', bg: '#EDF2E8', ink: '#1E3527', accent: '#2F8A57' },
   blossom: { label: '櫻粉', bg: '#FBEFF3', ink: '#3B1D2B', accent: '#D6336C' },
+  orange: { label: '橘子', bg: '#FFF1E2', ink: '#2B1A0E', accent: '#E8620C' },
 }
 
 export const PALETTE_ORDER = Object.keys(PALETTES) as PaletteId[]

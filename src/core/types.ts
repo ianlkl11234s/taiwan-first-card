@@ -21,7 +21,7 @@ export const SIZE_ORDER: SizeId[] = ['square', 'portrait', 'story', 'landscape']
 
 export type EditMode = 'simple' | 'advanced'
 export type TemplateId = 'declaration' | 'minimal' | 'gradient' | 'poster'
-export type PaletteId = 'taiwan' | 'mono' | 'ocean' | 'night' | 'forest' | 'blossom'
+export type PaletteId = 'taiwan' | 'mono' | 'ocean' | 'night' | 'forest' | 'blossom' | 'orange'
 export type FontStyleId = 'heavy' | 'regular' | 'serif'
 
 export interface CardState {

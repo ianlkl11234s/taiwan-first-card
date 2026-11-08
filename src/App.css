@@ -83,7 +83,7 @@
 .template b { font-size: 0.8rem; }
 .template.active { border-color: var(--accent); outline: 2px solid var(--accent); color: var(--accent); }
 
-.palettes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.palettes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
 .palette {
   position: relative;
   display: grid;
