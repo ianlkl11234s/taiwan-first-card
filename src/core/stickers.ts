@@ -8,13 +8,10 @@ export interface StickerDef {
   available: boolean
 }
 
-export const STICKERS: StickerDef[] = [
-  { id: 'lee-teng-hui', label: '李登輝', src: '', available: false },
-  { id: 'workwear', label: '職業穿戴', src: '', available: false },
-]
+export const STICKERS: StickerDef[] = []
 
 /** emoji 貼紙：交給系統字型繪製，不同裝置外觀可能不同 */
-export const EMOJI_STICKERS = ['🇹🇼', '🗳️', '🌻', '🌸', '❤️', '🫶', '✊', '💪', '🔥', '✨', '⭐', '🎤', '🎵', '📣', '🙌', '👍']
+export const EMOJI_STICKERS = ['🗳️', '🌻', '🌸', '❤️', '🫶', '✊', '💪', '🔥', '✨', '⭐', '🎤', '🎵', '📣', '🙌', '👍']
 
 const EMOJI_PREFIX = 'emoji:'
 

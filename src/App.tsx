@@ -551,19 +551,21 @@ export default function App() {
               加入
             </button>
           </form>
-          <div className="stickers">
-            {STICKERS.map((s) => (
-              <button
-                key={s.id}
-                className="sticker"
-                disabled={!s.available}
-                onClick={() => addOverlay({ kind: 'sticker', src: s.id, size: 0.3 })}
-              >
-                {s.available ? <img src={s.src} alt="" /> : <i>待授權</i>}
-                <small>{s.label}</small>
-              </button>
-            ))}
-          </div>
+          {STICKERS.length > 0 && (
+            <div className="stickers">
+              {STICKERS.map((s) => (
+                <button
+                  key={s.id}
+                  className="sticker"
+                  disabled={!s.available}
+                  onClick={() => addOverlay({ kind: 'sticker', src: s.id, size: 0.3 })}
+                >
+                  {s.available ? <img src={s.src} alt="" /> : <i>待授權</i>}
+                  <small>{s.label}</small>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="field">
