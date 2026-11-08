@@ -47,13 +47,15 @@ PNG 用 `toDataURL` 在點擊當下同步產生：Safari 會在 `toBlob` 的非�
 - Cloudflare Pages 可能保留基本存取日誌（不含編輯內容）。
 - `public/_headers` 的 CSP 只允許連線到本站與 Google Fonts，用技術手段保證沒有其他對外連線。
 
-## 部署（Cloudflare Workers 靜態資源，連 GitHub 自動部署）
+## 部署
 
-- Build command：`npm run build`（會先依 lockfile 自動安裝）
-- Deploy command：`npx wrangler deploy`（讀 `wrangler.jsonc`，只發佈 `dist/`）
+正式網址：https://taiwan-first-card.pages.dev（Cloudflare Pages 直接上傳專案）
+
+- push 到 main 會觸發 `.github/workflows/deploy-pages.yml`：`npm ci` → `npm run build` → `wrangler pages deploy dist`
+- GitHub secrets：`CLOUDFLARE_API_TOKEN`（權限只有 Cloudflare Pages: Edit）、`CLOUDFLARE_ACCOUNT_ID`
 - Node 版本：`.nvmrc` 指定 22（Vite 8 需要 ≥ 20.19）
-- Output directory：`dist`
 - `public/_headers` 會被複製到 `dist/`，由 Cloudflare 套用 CSP 等 header。
+- 舊網址 taiwan-first-card.ianlk11234s.workers.dev 仍由 Cloudflare Workers 連 GitHub 部署（讀 `wrangler.jsonc`），停用前兩邊都會更新。
 
 ## 實機驗收清單
 

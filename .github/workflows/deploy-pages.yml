@@ -1,0 +1,31 @@
+# push 到 main → 建置並部署到 Cloudflare Pages（https://taiwan-first-card.pages.dev）
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # wrangler.jsonc 是給舊 Workers 站用的，Pages 部署時移除以免被誤讀
+      - run: rm -f wrangler.jsonc
+      - run: npx --yes wrangler@4 pages deploy dist --project-name taiwan-first-card --branch main --commit-hash ${{ github.sha }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
