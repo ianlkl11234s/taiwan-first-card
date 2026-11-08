@@ -55,7 +55,6 @@ PNG 用 `toDataURL` 在點擊當下同步產生：Safari 會在 `toBlob` 的非�
 - GitHub secrets：`CLOUDFLARE_API_TOKEN`（權限只有 Cloudflare Pages: Edit）、`CLOUDFLARE_ACCOUNT_ID`
 - Node 版本：`.nvmrc` 指定 22（Vite 8 需要 ≥ 20.19）
 - `public/_headers` 會被複製到 `dist/`，由 Cloudflare 套用 CSP 等 header。
-- 舊網址 taiwan-first-card.ianlk11234s.workers.dev 仍由 Cloudflare Workers 連 GitHub 部署（讀 `wrangler.jsonc`），停用前兩邊都會更新。
 
 ## 實機驗收清單
 
