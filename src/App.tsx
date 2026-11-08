@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import { DEFAULT_STATE, FOOTER_PRESETS, SIZE_ORDER, SIZES, type CardState } from './core/types'
-import { resolveHeadline } from './core/text'
+import { HEADLINE_PRESETS, inviteText, resolveHeadline } from './core/text'
 import { ensureFonts, FONT_STYLE_ORDER, FONT_STYLES } from './core/fonts'
 import { contrast, PALETTE_ORDER, PALETTES, resolveColors } from './core/palettes'
 import { renderCard } from './core/render'
 import { TEMPLATE_ORDER, TEMPLATES } from './templates'
-import { fileName, isInAppBrowser, renderPng, saveImage } from './core/export'
+import { copyText, fileName, isInAppBrowser, renderPng, saveImage } from './core/export'
 
 type FontStatus = 'loading' | 'ready' | 'unavailable'
 
@@ -42,6 +42,9 @@ export default function App() {
   const [manualUrl, setManualUrl] = useState<string | null>(null)
   const [previewWidth, setPreviewWidth] = useState(0)
   const [previewVisible, setPreviewVisible] = useState(true)
+  const [toast, setToast] = useState<string | null>(null)
+  /** 自動複製失敗時顯示的文案，讓使用者自己長按複製 */
+  const [manualCopy, setManualCopy] = useState<string | null>(null)
 
   const previewRef = useRef<HTMLCanvasElement>(null)
   const exportRef = useRef<HTMLCanvasElement | null>(null)
@@ -117,6 +120,28 @@ export default function App() {
     })
   }
 
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 2000)
+    return () => clearTimeout(timer)
+  }, [toast])
+
+  const onCopyInvite = () => {
+    const text = inviteText(state.identity, location.origin)
+    copyText(text).then((ok) => {
+      if (ok) {
+        setManualCopy(null)
+        setToast('已複製')
+      } else setManualCopy(text)
+    })
+  }
+
+  const copyInviteButton = (
+    <button className="secondary" onClick={onCopyInvite}>
+      複製邀請文案
+    </button>
+  )
+
   const canSave = fontStatus !== 'loading'
 
   return (
@@ -185,6 +210,30 @@ export default function App() {
             <textarea rows={3} value={state.headline} onChange={(e) => update({ headline: e.target.value })} />
           </label>
         )}
+
+        <div className="field">
+          <span>標語範本</span>
+          {HEADLINE_PRESETS.map((g) => (
+            <div key={g.label} className="preset-group">
+              <small>{g.label}</small>
+              <div className="chips">
+                {g.presets.map((p) => {
+                  const active = state.mode === 'advanced' && state.headline === p
+                  return (
+                    <button
+                      key={p}
+                      className={active ? 'chip preset active' : 'chip preset'}
+                      aria-pressed={active}
+                      onClick={() => update({ mode: 'advanced', headline: p })}
+                    >
+                      {p.replace(/\n/g, '')}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
 
         <div className="field">
           <span>底部文字</span>
@@ -302,6 +351,7 @@ export default function App() {
         <button className="secondary" onClick={() => setState(DEFAULT_STATE)}>
           重設
         </button>
+        <div className="invite">{copyInviteButton}</div>
         {fontStatus === 'unavailable' && <p className="warn">無法載入網頁字型，圖片會改用手機內建字體。</p>}
       </footer>
 
@@ -314,10 +364,27 @@ export default function App() {
             <a className="secondary" href={manualUrl} download={fileName(state)}>
               下載檔案
             </a>
+            {copyInviteButton}
             <button className="primary" onClick={() => setManualUrl(null)}>
               完成
             </button>
           </div>
+        </div>
+      )}
+
+      {manualCopy && (
+        <div className="copy-fallback" role="dialog" aria-modal="true" aria-label="複製邀請文案">
+          <p>無法自動複製，請長按下方文字手動複製：</p>
+          <textarea readOnly rows={4} value={manualCopy} onFocus={(e) => e.currentTarget.select()} />
+          <button className="primary" onClick={() => setManualCopy(null)}>
+            關閉
+          </button>
+        </div>
+      )}
+
+      {toast && (
+        <div className="toast" role="status">
+          {toast}
         </div>
       )}
     </div>

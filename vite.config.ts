@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
@@ -16,4 +17,6 @@ function pagesHeaders(): Record<string, string> {
 export default defineConfig({
   plugins: [react()],
   preview: { headers: pagesHeaders() },
+  // e2e/ 是 Playwright 的測試，不給 vitest 跑
+  test: { include: ['src/**/*.test.ts'] },
 })

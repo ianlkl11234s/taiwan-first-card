@@ -63,3 +63,33 @@ export async function saveImage(blob: Blob, name: string): Promise<SaveResult> {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
   return 'downloaded'
 }
+
+/** 複製文字：有 Clipboard API 就用，否則（或失敗時）退回 execCommand；都失敗回傳 false */
+export async function copyText(text: string): Promise<boolean> {
+  // App 內建瀏覽器常沒有 clipboard，這時要在點擊的同步流程內直接 execCommand，才不會失去使用者手勢
+  if (!navigator.clipboard?.writeText) return execCopy(text)
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch {
+    return execCopy(text)
+  }
+}
+
+function execCopy(text: string): boolean {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;font-size:16px'
+  document.body.appendChild(ta)
+  ta.select()
+  ta.setSelectionRange(0, text.length)
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch {
+    ok = false
+  }
+  ta.remove()
+  return ok
+}
