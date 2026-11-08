@@ -6,7 +6,7 @@ import { ensureFonts, FONT_STYLE_ORDER, FONT_STYLES } from './core/fonts'
 import { contrast, PALETTE_ORDER, PALETTES, resolveColors } from './core/palettes'
 import { hasPhotoBg, renderCard, type RenderAssets } from './core/render'
 import { overlayAt, panOffset } from './core/geometry'
-import { EMOJI_STICKERS, emojiStickerId, firstGrapheme, loadStickers, STICKERS } from './core/stickers'
+import { EMOJI_GROUPS, emojiStickerId, firstGrapheme, loadStickers, STICKERS } from './core/stickers'
 import { loadPhoto } from './core/photo'
 import { TEMPLATE_ORDER, TEMPLATES } from './templates'
 import { copyText, fileName, isInAppBrowser, renderPng, saveImage } from './core/export'
@@ -522,13 +522,23 @@ export default function App() {
 
         <div className="field">
           <span>貼紙（點一下加到圖卡中央，可在預覽上拖曳）</span>
-          <div className="emojis">
-            {EMOJI_STICKERS.map((e) => (
-              <button key={e} className="emoji" aria-label={`加入 ${e}`} onClick={() => addOverlay({ kind: 'sticker', src: emojiStickerId(e), size: 0.25 })}>
-                {e}
-              </button>
-            ))}
-          </div>
+          {EMOJI_GROUPS.map((g) => (
+            <div key={g.label} className="preset-group">
+              <small>{g.label}</small>
+              <div className="emojis">
+                {g.items.map((e) => (
+                  <button
+                    key={e}
+                    className="emoji"
+                    aria-label={`加入 ${e}`}
+                    onClick={() => addOverlay({ kind: 'sticker', src: emojiStickerId(e), size: 0.25 })}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
           <form
             className="emoji-custom"
             onSubmit={(e) => {

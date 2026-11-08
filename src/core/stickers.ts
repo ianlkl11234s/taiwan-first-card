@@ -11,7 +11,10 @@ export interface StickerDef {
 export const STICKERS: StickerDef[] = []
 
 /** emoji 貼紙：交給系統字型繪製，不同裝置外觀可能不同 */
-export const EMOJI_STICKERS = ['🗳️', '🌻', '🌸', '❤️', '🫶', '✊', '💪', '🔥', '✨', '⭐', '🎤', '🎵', '📣', '🙌', '👍']
+export const EMOJI_GROUPS: { label: string; items: string[] }[] = [
+  { label: '常用', items: ['🗳️', '🌻', '🌸', '❤️', '🫶', '✊', '💪', '🔥', '✨', '⭐', '🎤', '🎵', '📣', '🙌', '👍'] },
+  { label: '職業', items: ['⛑️', '🪖', '🎓', '🧑🏼‍🚒', '👨🏼‍✈️', '👩‍🔬', '👮🏼‍♂️', '👷🏼‍♀️'] },
+]
 
 const EMOJI_PREFIX = 'emoji:'
 
