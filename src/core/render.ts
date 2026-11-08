@@ -9,6 +9,7 @@ import { SIZES, type CardState, type Overlay } from './types'
 import { coverRect, overlayBox } from './geometry'
 import { resolveHeadline } from './text'
 import { TEMPLATES } from '../templates'
+import { stickerImage } from './stickers'
 import { drawBlock, type TemplateLayout } from '../templates/shared'
 
 function makeMeasure(ctx: CanvasRenderingContext2D, weight: number, family: string): Measure {
@@ -104,12 +105,14 @@ function drawOverlay(ctx: CanvasRenderingContext2D, o: Overlay, state: CardState
       ctx.stroke(path)
     }
   } else {
-    const img = assets.stickers.get(o.src)
+    const img = stickerImage(o.src, assets.stickers)
     if (img) {
       // 等比放進正方框
-      const s = side / Math.max(img.naturalWidth, img.naturalHeight)
-      const w = img.naturalWidth * s
-      const h = img.naturalHeight * s
+      const iw = img instanceof HTMLImageElement ? img.naturalWidth : img.width
+      const ih = img instanceof HTMLImageElement ? img.naturalHeight : img.height
+      const s = side / Math.max(iw, ih)
+      const w = iw * s
+      const h = ih * s
       ctx.drawImage(img, -w / 2, -h / 2, w, h)
     }
   }

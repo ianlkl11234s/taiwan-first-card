@@ -283,6 +283,19 @@
 .secondary.file { position: relative; overflow: hidden; }
 .secondary.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
 
+.emojis { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.emoji {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.emoji-custom { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.emoji-custom button { padding: 0 16px; border-radius: 10px; }
 .stickers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .sticker {
   display: grid;

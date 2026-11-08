@@ -6,7 +6,7 @@ import { ensureFonts, FONT_STYLE_ORDER, FONT_STYLES } from './core/fonts'
 import { contrast, PALETTE_ORDER, PALETTES, resolveColors } from './core/palettes'
 import { hasPhotoBg, renderCard, type RenderAssets } from './core/render'
 import { overlayAt, panOffset } from './core/geometry'
-import { loadStickers, STICKERS } from './core/stickers'
+import { EMOJI_STICKERS, emojiStickerId, firstGrapheme, loadStickers, STICKERS } from './core/stickers'
 import { loadPhoto } from './core/photo'
 import { TEMPLATE_ORDER, TEMPLATES } from './templates'
 import { copyText, fileName, isInAppBrowser, renderPng, saveImage } from './core/export'
@@ -76,6 +76,7 @@ export default function App() {
   /** 使用者照片（已縮小、已 decode 的 canvas），只存在記憶體 */
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [customEmoji, setCustomEmoji] = useState('')
   const [stickers, setStickers] = useState<Map<string, HTMLImageElement>>(() => new Map())
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const dragRef = useRef<Drag | null>(null)
@@ -521,6 +522,35 @@ export default function App() {
 
         <div className="field">
           <span>貼紙（點一下加到圖卡中央，可在預覽上拖曳）</span>
+          <div className="emojis">
+            {EMOJI_STICKERS.map((e) => (
+              <button key={e} className="emoji" aria-label={`加入 ${e}`} onClick={() => addOverlay({ kind: 'sticker', src: emojiStickerId(e), size: 0.25 })}>
+                {e}
+              </button>
+            ))}
+          </div>
+          <form
+            className="emoji-custom"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const g = firstGrapheme(customEmoji)
+              if (!g) return
+              addOverlay({ kind: 'sticker', src: emojiStickerId(g), size: 0.25 })
+              setCustomEmoji('')
+            }}
+          >
+            <input
+              type="text"
+              value={customEmoji}
+              placeholder="輸入其他 emoji"
+              enterKeyHint="done"
+              aria-label="自訂 emoji"
+              onChange={(e) => setCustomEmoji(e.target.value)}
+            />
+            <button type="submit" className="secondary" disabled={!customEmoji.trim()}>
+              加入
+            </button>
+          </form>
           <div className="stickers">
             {STICKERS.map((s) => (
               <button
