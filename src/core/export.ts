@@ -3,16 +3,17 @@
  * Safari 會在 toBlob 的非同步 callback 後丟掉使用者手勢，所以這裡用
  * toDataURL 同步產出 PNG。
  */
-import { renderCard } from './render'
+import { renderCard, type RenderAssets } from './render'
 import { SIZES, type CardState } from './types'
 
-export function renderPng(canvas: HTMLCanvasElement, state: CardState): Blob {
+/** 匯出：含背景照片與疊加層，不畫選取框 */
+export function renderPng(canvas: HTMLCanvasElement, state: CardState, assets: RenderAssets): Blob {
   const { width, height } = SIZES[state.size]
   if (canvas.width !== width) canvas.width = width
   if (canvas.height !== height) canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('canvas 2d context unavailable')
-  renderCard(ctx, state, 1)
+  renderCard(ctx, state, 1, assets)
   const url = canvas.toDataURL('image/png')
   const bin = atob(url.slice(url.indexOf(',') + 1))
   const bytes = new Uint8Array(bin.length)

@@ -38,6 +38,34 @@ export interface CardState {
   customBg: string | null
   customInk: string | null
   fontStyle: FontStyleId
+  /** 貼紙與照片框，陣列後面的畫在上層 */
+  overlays: Overlay[]
+  /** 照片當滿版背景時的設定；null 表示不用背景照片 */
+  photoBg: PhotoBg | null
+}
+
+export interface Overlay {
+  id: string
+  kind: 'sticker' | 'photo'
+  /** 貼紙 id；照片框固定為 'photo' */
+  src: string
+  /** 中心點，相對卡片寬高的 0–1 比例，切換尺寸後位置仍合理 */
+  cx: number
+  cy: number
+  /** 邊長，相對 min(寬, 高) 的比例 */
+  size: number
+  /** 旋轉角度（度） */
+  rotation: number
+  /** 照片框形狀 */
+  shape?: 'circle' | 'rounded'
+}
+
+export interface PhotoBg {
+  /** ≥ 1，在 cover 之上再放大 */
+  zoom: number
+  /** -1..1，見 geometry.coverRect */
+  offsetX: number
+  offsetY: number
 }
 
 export const FOOTER_PRESETS = ['11/28 先投票', '11/28 不去打工']
@@ -53,4 +81,6 @@ export const DEFAULT_STATE: CardState = {
   customBg: null,
   customInk: null,
   fontStyle: 'heavy',
+  overlays: [],
+  photoBg: null,
 }

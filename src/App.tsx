@@ -1,14 +1,32 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import './App.css'
-import { DEFAULT_STATE, FOOTER_PRESETS, SIZE_ORDER, SIZES, type CardState } from './core/types'
+import { DEFAULT_STATE, FOOTER_PRESETS, SIZE_ORDER, SIZES, type CardState, type Overlay } from './core/types'
 import { HEADLINE_PRESETS, inviteText, resolveHeadline } from './core/text'
 import { ensureFonts, FONT_STYLE_ORDER, FONT_STYLES } from './core/fonts'
 import { contrast, PALETTE_ORDER, PALETTES, resolveColors } from './core/palettes'
-import { renderCard } from './core/render'
+import { hasPhotoBg, renderCard, type RenderAssets } from './core/render'
+import { overlayAt, panOffset } from './core/geometry'
+import { loadStickers, STICKERS } from './core/stickers'
+import { loadPhoto } from './core/photo'
 import { TEMPLATE_ORDER, TEMPLATES } from './templates'
 import { copyText, fileName, isInAppBrowser, renderPng, saveImage } from './core/export'
 
 type FontStatus = 'loading' | 'ready' | 'unavailable'
+type PhotoMode = 'none' | 'bg' | 'frame'
+
+const PHOTO_MODES: { id: PhotoMode; label: string }[] = [
+  { id: 'none', label: '不使用' },
+  { id: 'bg', label: '滿版背景' },
+  { id: 'frame', label: '照片框' },
+]
+
+type Drag =
+  | { kind: 'overlay'; id: string; dx: number; dy: number }
+  | { kind: 'bg'; x: number; y: number }
+
+let overlaySeq = 0
+const newOverlayId = () => `o${Date.now().toString(36)}${(overlaySeq++).toString(36)}`
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 
 const MAX_PREVIEW_DPR = 2
 const THUMB_WIDTH = 72
@@ -16,7 +34,17 @@ const MINI_MAX_WIDTH = 112
 const MINI_MAX_HEIGHT = 168
 
 /** 小尺寸圖卡（版型縮圖、浮動預覽）：用目前的文字與配色實際畫出來 */
-function CardCanvas({ state, version, cssWidth }: { state: CardState; version: number; cssWidth: number }) {
+function CardCanvas({
+  state,
+  assets,
+  version,
+  cssWidth,
+}: {
+  state: CardState
+  assets: RenderAssets
+  version: number
+  cssWidth: number
+}) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = ref.current
@@ -28,8 +56,8 @@ function CardCanvas({ state, version, cssWidth }: { state: CardState; version: n
     const ph = Math.round((pw * height) / width)
     if (canvas.width !== pw) canvas.width = pw
     if (canvas.height !== ph) canvas.height = ph
-    renderCard(ctx, state, pw / width)
-  }, [state, version, cssWidth])
+    renderCard(ctx, state, pw / width, assets)
+  }, [state, assets, version, cssWidth])
   return <canvas ref={ref} style={{ width: cssWidth }} aria-hidden="true" />
 }
 
@@ -45,6 +73,12 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null)
   /** 自動複製失敗時顯示的文案，讓使用者自己長按複製 */
   const [manualCopy, setManualCopy] = useState<string | null>(null)
+  /** 使用者照片（已縮小、已 decode 的 canvas），只存在記憶體 */
+  const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const [stickers, setStickers] = useState<Map<string, HTMLImageElement>>(() => new Map())
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const dragRef = useRef<Drag | null>(null)
 
   const previewRef = useRef<HTMLCanvasElement>(null)
   const exportRef = useRef<HTMLCanvasElement | null>(null)
@@ -52,10 +86,29 @@ export default function App() {
   const { width, height } = SIZES[state.size]
   const cardText = `${resolveHeadline(state)}${state.footer}`
 
+  const assets = useMemo<RenderAssets>(() => ({ photo, stickers }), [photo, stickers])
+  const photoBgOn = hasPhotoBg(state, assets)
+  const photoMode: PhotoMode = state.photoBg ? 'bg' : state.overlays.some((o) => o.kind === 'photo') ? 'frame' : 'none'
+  const selected = state.overlays.find((o) => o.id === selectedId) ?? null
+  // 有可拖曳的東西時才攔截觸控，否則保留捲動頁面
+  const interactive = state.overlays.length > 0 || photoBgOn
+
   const colors = resolveColors(state)
-  const lowContrast = contrast(colors.bg, colors.ink) < 3
+  // 背景照片模式文字固定白色＋深色遮罩，不適用配色對比警告
+  const lowContrast = !photoBgOn && contrast(colors.bg, colors.ink) < 3
 
   const update = (patch: Partial<CardState>) => setState((s) => ({ ...s, ...patch }))
+  const updateOverlay = (id: string, patch: Partial<Overlay>) =>
+    setState((s) => ({ ...s, overlays: s.overlays.map((o) => (o.id === id ? { ...o, ...patch } : o)) }))
+
+  // 預先載入貼紙，載完重繪
+  useEffect(() => {
+    let current = true
+    loadStickers().then((map) => current && setStickers(map))
+    return () => {
+      current = false
+    }
+  }, [])
 
   // 依實際文字載入字型切片；只採用最後一次請求的結果
   useEffect(() => {
@@ -102,9 +155,9 @@ export default function App() {
     if (canvas.height !== ph) canvas.height = ph
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const layout = renderCard(ctx, state, pw / width)
+    const layout = renderCard(ctx, state, pw / width, assets, { selectedId })
     setOverflow(layout.blocks.some((b) => b.text.overflow))
-  }, [state, previewWidth, width, height, fontVersion])
+  }, [state, assets, selectedId, previewWidth, width, height, fontVersion])
 
   useEffect(() => {
     if (!manualUrl) return
@@ -114,10 +167,113 @@ export default function App() {
   const onSave = () => {
     exportRef.current ??= document.createElement('canvas')
     // 同步產圖 + 同步呼叫 share，保住使用者手勢
-    const blob = renderPng(exportRef.current, state)
+    const blob = renderPng(exportRef.current, state, assets)
     saveImage(blob, fileName(state)).then((result) => {
       if (result === 'needs-manual') setManualUrl(URL.createObjectURL(blob))
     })
+  }
+
+  const toCard = (e: ReactPointerEvent<HTMLCanvasElement>): [number, number] => {
+    const r = e.currentTarget.getBoundingClientRect()
+    return [((e.clientX - r.left) / r.width) * width, ((e.clientY - r.top) / r.height) * height]
+  }
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const [x, y] = toCard(e)
+    const hit = overlayAt(state.overlays, x, y, width, height)
+    if (hit) {
+      setSelectedId(hit.id)
+      dragRef.current = { kind: 'overlay', id: hit.id, dx: x - hit.cx * width, dy: y - hit.cy * height }
+    } else {
+      setSelectedId(null)
+      dragRef.current = photoBgOn ? { kind: 'bg', x, y } : null
+    }
+    if (dragRef.current) e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    const drag = dragRef.current
+    if (!drag) return
+    const [x, y] = toCard(e)
+    if (drag.kind === 'overlay') {
+      updateOverlay(drag.id, { cx: clamp01((x - drag.dx) / width), cy: clamp01((y - drag.dy) / height) })
+    } else if (photo) {
+      const dx = x - drag.x
+      const dy = y - drag.y
+      drag.x = x
+      drag.y = y
+      setState((s) =>
+        s.photoBg
+          ? { ...s, photoBg: { ...s.photoBg, ...panOffset(photo.width, photo.height, width, height, s.photoBg.zoom, s.photoBg, dx, dy) } }
+          : s,
+      )
+    }
+  }
+
+  const endDrag = () => {
+    dragRef.current = null
+  }
+
+  const addOverlay = (o: Omit<Overlay, 'id' | 'cx' | 'cy' | 'rotation'>) => {
+    const id = newOverlayId()
+    setState((s) => ({ ...s, overlays: [...s.overlays, { id, cx: 0.5, cy: 0.5, rotation: 0, ...o }] }))
+    setSelectedId(id)
+    // 手機上按鈕在預覽下方，加完把預覽捲回畫面，才能直接拖曳
+    if (!previewVisible) previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  const removeOverlay = (id: string) => {
+    setState((s) => ({ ...s, overlays: s.overlays.filter((o) => o.id !== id) }))
+    setSelectedId(null)
+  }
+
+  const bringToFront = (id: string) =>
+    setState((s) => {
+      const o = s.overlays.find((x) => x.id === id)
+      return o ? { ...s, overlays: [...s.overlays.filter((x) => x.id !== id), o] } : s
+    })
+
+  /** 照片用途切換：背景與照片框二選一 */
+  const setPhotoMode = (mode: PhotoMode) => {
+    const others = state.overlays.filter((o) => o.kind !== 'photo')
+    if (mode === 'frame') {
+      if (photoMode === 'frame') return
+      update({ photoBg: null, overlays: others })
+      addOverlay({ kind: 'photo', src: 'photo', size: 0.45, shape: 'circle' })
+      return
+    }
+    update({ overlays: others, photoBg: mode === 'bg' ? (state.photoBg ?? { zoom: 1, offsetX: 0, offsetY: 0 }) : null })
+    if (selected?.kind === 'photo') setSelectedId(null)
+  }
+
+  const onPhotoInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    // 清空才能再選同一張
+    e.target.value = ''
+    if (!file) return
+    setPhotoError(null)
+    loadPhoto(file)
+      .then((canvas) => {
+        setPhoto(canvas)
+        // 還沒選用途時預設當滿版背景
+        setState((s) =>
+          s.photoBg || s.overlays.some((o) => o.kind === 'photo') ? s : { ...s, photoBg: { zoom: 1, offsetX: 0, offsetY: 0 } },
+        )
+      })
+      .catch(() => setPhotoError('這張照片讀不出來（可能是 HEIC 等格式），請換一張 JPG 或 PNG。'))
+  }
+
+  const removePhoto = () => {
+    setPhotoMode('none')
+    setPhoto(null)
+    setPhotoError(null)
+  }
+
+  const onReset = () => {
+    setState(DEFAULT_STATE)
+    setPhoto(null)
+    setPhotoError(null)
+    setSelectedId(null)
   }
 
   useEffect(() => {
@@ -148,18 +304,83 @@ export default function App() {
     <div className="app">
       <header className="masthead">
         <h1>我先是台灣人</h1>
-        <p>輸入你的身分，做一張 11/28 投票日的社群圖卡。文字只在你的手機裡處理，不會上傳。</p>
+        <p>輸入你的身分，做一張 11/28 投票日的社群圖卡。文字和照片只在你的手機裡處理，不會上傳。</p>
       </header>
 
       <section className="preview" aria-label="圖卡預覽">
         <canvas
           ref={previewRef}
           className="preview-canvas"
-          style={{ aspectRatio: `${width} / ${height}`, '--ar': width / height } as CSSProperties}
           role="img"
           aria-label={`${resolveHeadline(state)}／${state.footer}`}
+          style={
+            {
+              aspectRatio: `${width} / ${height}`,
+              '--ar': width / height,
+              touchAction: interactive ? 'none' : undefined,
+            } as CSSProperties
+          }
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
         />
         {overflow && <p className="warn">文字太長，已縮到最小字級，請精簡一些。</p>}
+        {photoBgOn && !selected && <p className="hint">在預覽上拖曳可以移動背景照片。</p>}
+        {selected && (
+          <div className="selection" aria-label="編輯選取的物件">
+            <div className="selection-head">
+              <b>{selected.kind === 'photo' ? '照片框' : (STICKERS.find((s) => s.id === selected.src)?.label ?? '貼紙')}</b>
+              <button className="link" onClick={() => setSelectedId(null)}>
+                完成
+              </button>
+            </div>
+            <label className="slider">
+              <span>大小</span>
+              <input
+                type="range"
+                min={0.08}
+                max={0.9}
+                step={0.01}
+                value={selected.size}
+                onChange={(e) => updateOverlay(selected.id, { size: Number(e.target.value) })}
+              />
+            </label>
+            <label className="slider">
+              <span>旋轉</span>
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                step={1}
+                value={selected.rotation}
+                onChange={(e) => updateOverlay(selected.id, { rotation: Number(e.target.value) })}
+              />
+            </label>
+            {selected.kind === 'photo' && (
+              <div className="segmented">
+                {(['circle', 'rounded'] as const).map((shape) => (
+                  <button
+                    key={shape}
+                    className={(selected.shape ?? 'circle') === shape ? 'active' : ''}
+                    aria-pressed={(selected.shape ?? 'circle') === shape}
+                    onClick={() => updateOverlay(selected.id, { shape })}
+                  >
+                    {shape === 'circle' ? '圓形' : '圓角方形'}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="selection-actions">
+              <button className="secondary" onClick={() => bringToFront(selected.id)}>
+                移到最上層
+              </button>
+              <button className="secondary danger" onClick={() => removeOverlay(selected.id)}>
+                刪除
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {!previewVisible && !manualUrl && (
@@ -170,6 +391,7 @@ export default function App() {
         >
           <CardCanvas
             state={state}
+            assets={assets}
             version={fontVersion}
             cssWidth={Math.round(Math.min(MINI_MAX_WIDTH, (MINI_MAX_HEIGHT * width) / height))}
           />
@@ -250,6 +472,71 @@ export default function App() {
         </div>
 
         <div className="field">
+          <span>照片（只在本機處理，不會上傳）</span>
+          {photo ? (
+            <>
+              <div className="segmented three" role="group" aria-label="照片用途">
+                {PHOTO_MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    className={photoMode === m.id ? 'active' : ''}
+                    aria-pressed={photoMode === m.id}
+                    onClick={() => setPhotoMode(m.id)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              {state.photoBg && (
+                <label className="slider">
+                  <span>縮放</span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={3}
+                    step={0.01}
+                    value={state.photoBg.zoom}
+                    onChange={(e) => state.photoBg && update({ photoBg: { ...state.photoBg, zoom: Number(e.target.value) } })}
+                  />
+                </label>
+              )}
+              <div className="photo-actions">
+                <label className="secondary file">
+                  換一張
+                  <input type="file" accept="image/*" onChange={onPhotoInput} />
+                </label>
+                <button className="secondary" onClick={removePhoto}>
+                  移除照片
+                </button>
+              </div>
+            </>
+          ) : (
+            <label className="secondary file">
+              上傳照片
+              <input type="file" accept="image/*" onChange={onPhotoInput} />
+            </label>
+          )}
+          {photoError && <p className="warn">{photoError}</p>}
+        </div>
+
+        <div className="field">
+          <span>貼紙（點一下加到圖卡中央，可在預覽上拖曳）</span>
+          <div className="stickers">
+            {STICKERS.map((s) => (
+              <button
+                key={s.id}
+                className="sticker"
+                disabled={!s.available}
+                onClick={() => addOverlay({ kind: 'sticker', src: s.id, size: 0.3 })}
+              >
+                {s.available ? <img src={s.src} alt="" /> : <i>待授權</i>}
+                <small>{s.label}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="field">
           <span>版型</span>
           <div className="templates">
             {TEMPLATE_ORDER.map((id) => (
@@ -259,7 +546,7 @@ export default function App() {
                 aria-pressed={state.template === id}
                 onClick={() => update({ template: id })}
               >
-                <CardCanvas state={{ ...state, template: id }} version={fontVersion} cssWidth={THUMB_WIDTH} />
+                <CardCanvas state={{ ...state, template: id }} assets={assets} version={fontVersion} cssWidth={THUMB_WIDTH} />
                 <b>{TEMPLATES[id].label}</b>
               </button>
             ))}
@@ -348,7 +635,7 @@ export default function App() {
         <button className="primary" disabled={!canSave} onClick={onSave}>
           {fontStatus === 'loading' && !fontsEverReady ? '字型載入中…' : '儲存／分享圖片'}
         </button>
-        <button className="secondary" onClick={() => setState(DEFAULT_STATE)}>
+        <button className="secondary" onClick={onReset}>
           重設
         </button>
         <div className="invite">{copyInviteButton}</div>
