@@ -77,7 +77,7 @@ export const DEFAULT_STATE: CardState = {
   footer: FOOTER_PRESETS[0],
   size: 'square',
   template: 'declaration',
-  palette: 'taiwan',
+  palette: 'night',
   customBg: null,
   customInk: null,
   fontStyle: 'heavy',

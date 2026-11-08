@@ -1,28 +1,18 @@
 :root {
-  --bg: #f7f3ec;
-  --surface: #ffffff;
-  --ink: #1b1b1b;
-  --muted: #5f5a52;
-  --line: #e2dbcf;
-  --accent: #c8102e;
-  --on-accent: #ffffff;
-  --warn: #9a5b00;
+  /* 夜空主題（與圖卡「夜空」配色一致） */
+  --bg: #121821;
+  --surface: #1b2330;
+  --ink: #f4f1ea;
+  --muted: #a9b1bd;
+  --line: #2e3949;
+  --accent: #ffc83d;
+  --on-accent: #121821;
+  --warn: #ffb35a;
   font-family: 'Noto Sans TC', 'PingFang TC', 'Heiti TC', system-ui, sans-serif;
   color: var(--ink);
   background: var(--bg);
+  color-scheme: dark;
   -webkit-text-size-adjust: 100%;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161514;
-    --surface: #211f1d;
-    --ink: #f1ece4;
-    --muted: #b3aca2;
-    --line: #3a3632;
-    --accent: #e0384f;
-    --warn: #f0b35a;
-  }
 }
 
 *,
