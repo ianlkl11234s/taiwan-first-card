@@ -7,7 +7,7 @@ export interface Colors {
 }
 
 export const PALETTES: Record<PaletteId, Colors & { label: string }> = {
-  taiwan: { label: '朱紅', bg: '#F4EDE1', ink: '#1B1B1B', accent: '#C8102E' },
+  taiwan: { label: '暖紅', bg: '#F4EDE1', ink: '#1B1B1B', accent: '#C8102E' },
   mono: { label: '黑白', bg: '#FFFFFF', ink: '#111111', accent: '#111111' },
   ocean: { label: '海藍', bg: '#EAF1F7', ink: '#0B2545', accent: '#1F5FBF' },
   night: { label: '夜空', bg: '#121821', ink: '#F4F1EA', accent: '#FFC83D' },
